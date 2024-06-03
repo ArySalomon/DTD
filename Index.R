@@ -30,14 +30,6 @@ library(grid)
 ## LIENZO BASE
 
 
-token <- httr::content(httr::POST("https://webgis.ciudaddemendoza.gob.ar/portal/sharing/rest/generateToken",
-                                  body = list(
-                                    username = "cchavarini",
-                                    password = "IDE_2022_CIUDAD",
-                                    referer = "webgis.ciudaddemendoza.gob.ar/portal",
-                                    f = "json"),
-                                  encode = "form"))$token
-
 # Barrios
 url <- "https://webgis.ciudaddemendoza.gob.ar/server/rest/services/Catastro/MapServer/10/query"
 
