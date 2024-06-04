@@ -1,6 +1,5 @@
 
 
-save.image()
 
 ## MICROBASURALES
 
