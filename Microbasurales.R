@@ -94,7 +94,9 @@ shapefile_path <- "C:/Users/arysa/OneDrive/Transformación digital/IDE/Microbasu
 
 microbasurales <- st_read(shapefile_path)
 
-# map
+microbasurales <- microbasurales[-which(st_is_empty(microbasurales)), ]
+
+
 ggplot() +
   geom_sf(data = fracc_cens_ciudad, col = "black", alpha = 0, size = 0.1) +
   geom_sf(data = microbasurales, size = 5) +
@@ -110,61 +112,68 @@ leaflet() %>%
 
 
 
-## Filtramos un barrio en microbasurales
-microbasurales$barrio <- NA
-
-# identificamos centroide de cada polígono
-microbasurales$centroide <- st_centroid(microbasurales)$geometry
-
-# compatibilizamos georeferencia
-map_barrios <- st_transform(map_barrios, st_crs(microbasurales))
-
-# Loop through each point and check if it lies within any polygon
-for (i in 1:nrow(microbasurales)) {
-  
-  # Check if the point is within any polygon
-  points_within_barrio <- st_intersects(microbasurales[i, "centroide"], map_barrios$geometry, sparse = FALSE)
-  
-  if (any(points_within_barrio)) {
-    # If the point is within any polygon, store the ID of the first polygon it intersects with
-    microbasurales$barrio[i] <- map_barrios$nombre[which(points_within_barrio)[1]]
-  }
-  
-  print(paste0(round(i/nrow(microbasurales)*100, 2), "%"))
-  
-}
-
-rm(points_within_barrio, i)
-
-ggplot() +
-  geom_sf(data = fracc_cens_ciudad, col = "black", alpha = 0, size = 0.1) +
-  geom_sf(data = map_barrios, col = "black", alpha = 0, size = 0.1) +
-  geom_sf(data = microbasurales %>% 
-            filter(barrio == "31 de Mayo"), aes(col = barrio)) +
-  theme_minimal() +
-  xlim(c(68.94, 68.88)) +
-  ylim(c(32.91, 32.87))
+# Opcional -> filtrar barrios en microbasurales ---------------------------
 
 
 
-microbasurales <- microbasurales %>% 
-  filter(barrio == "31 de Mayo")
-
-## prueba poligono -> pointgrid
+# ## Filtramos un barrio en microbasurales
+# microbasurales$barrio <- NA
 # 
-# polygon <- microbasurales[x, ]
+# # identificamos centroide de cada polígono
+# microbasurales$centroide <- st_centroid(microbasurales)$geometry
 # 
-# regular_points <- st_as_sf(as(raster(extent(polygon), res = 0.2), "SpatialPoints"))
+# # compatibilizamos georeferencia
+# map_barrios <- st_transform(map_barrios, st_crs(microbasurales))
 # 
-# plot(regular_points)
+# # Loop through each point and check if it lies within any polygon
+# for (i in 1:nrow(microbasurales)) {
+#   
+#   # Check if the point is within any polygon
+#   points_within_barrio <- st_intersects(microbasurales[i, "centroide"], map_barrios$geometry, sparse = FALSE)
+#   
+#   if (any(points_within_barrio)) {
+#     # If the point is within any polygon, store the ID of the first polygon it intersects with
+#     microbasurales$barrio[i] <- map_barrios$nombre[which(points_within_barrio)[1]]
+#   }
+#   
+#   print(paste0(round(i/nrow(microbasurales)*100, 2), "%"))
+#   
+# }
 # 
-# st_crs(regular_points) <- st_crs(polygon)
+# rm(points_within_barrio, i)
 # 
-# points_within_polygon <-  st_intersection(regular_points, polygon)
-# 
-# plot(points_within_polygon)
+# ggplot() +
+#   geom_sf(data = fracc_cens_ciudad, col = "black", alpha = 0, size = 0.1) +
+#   geom_sf(data = map_barrios, col = "black", alpha = 0, size = 0.1) +
+#   geom_sf(data = microbasurales %>% 
+#             filter(barrio == "31 de Mayo"), aes(col = barrio)) +
+#   theme_minimal() +
+#   xlim(c(68.94, 68.88)) +
+#   ylim(c(32.91, 32.87))
 # 
 # 
+# microbasurales <- microbasurales %>%
+#   filter(barrio == "31 de Mayo")
+
+
+
+
+# DBSCAN ~ pointgrid ------------------------------------------------------
+
+
+# prueba poligono -> pointgrid
+
+polygon <- microbasurales[x, ]
+
+regular_points <- st_as_sf(as(raster(extent(polygon), res = 0.2), "SpatialPoints"))
+
+plot(regular_points)
+
+st_crs(regular_points) <- st_crs(polygon)
+
+points_within_polygon <-  st_intersection(regular_points, polygon)
+
+plot(points_within_polygon)
 
 # Loop para iterar sobre cada polígono y guardar un pointgrid en lista
 
@@ -197,7 +206,6 @@ for (x in 1:nrow(microbasurales)) {
 
 combined_sf <- do.call(rbind, points_within_polygons)
 
-
 leaflet(data = st_transform(combined_sf, crs = 4326)) %>%
   setView(lng = -68.9000, lat = -32.8895, zoom = 13.5) %>%
   addTiles() %>%  # Add default OpenStreetMap tiles
@@ -207,24 +215,12 @@ leaflet(data = st_transform(combined_sf, crs = 4326)) %>%
                    fillOpacity = 0.7  # Opacity of the markers
   )
 
-
-
-as.data.frame(combined_sf) %>% View()
-
-dbscan(st_coordinates(combined_sf), eps = 10, minPts = 500)
-
-
 combined_sf$cluster <- as.factor(dbscan(st_coordinates(combined_sf), eps = 15, minPts = 500)$cluster)
-
 
 
 plot(combined_sf$geometry, col = combined_sf$cluster)
 
-
-
 cluster_colors <- rainbow(length(levels(combined_sf$cluster)))
-
-
 
 leaflet() %>%
   addTiles() %>%
@@ -234,6 +230,49 @@ leaflet() %>%
                    fillColor = ~cluster_colors[cluster],  # Fill color by cluster column
                    fillOpacity = 0.8,  # Set fill opacity
                    radius = 1)  # Set radius of the circle markers
+
+
+
+
+# DBSCAN ~ rasters --------------------------------------------------------
+
+# prueba polígono -> raster -> pointgrid
+
+rasterized <- rasterize(microbasurales,
+                        raster(ext = extent(microbasurales), resolution = 1))
+
+ncell(rasterized)
+
+plot(rasterized)
+
+coordpoints <- st_as_sf(as.data.frame(rasterToPoints(rasterized)),
+                        coords = c("x", "y"))
+
+st_crs(coordpoints) <- st_crs(microbasurales)
+
+
+# plot(coordpoints, col = "grey")
+# 
+# plot(microbasurales$geometry)
+
+coordpoints$cluster <- as.factor(dbscan(st_coordinates(coordpoints),
+                                        eps = 25,
+                                        minPts = 80)$cluster)
+
+
+cluster_colors <- rainbow(length(levels(coordpoints$cluster)))
+cluster_colors[1] <- "grey"
+
+leaflet() %>%
+  addTiles() %>%
+  setView(lng = -68.9000, lat = -32.8895, zoom = 13.5) %>%
+  addCircleMarkers(data = st_transform(coordpoints, crs = 4326), 
+                   color = ~cluster_colors[cluster],  # Color by cluster column
+                   fillColor = ~cluster_colors[cluster],  # Fill color by cluster column
+                   fillOpacity = 0.3,  # Set fill opacity for transparency (0: fully transparent, 1: fully opaque)
+                   opacity = 0.3, # Set border opacity for transparency (0: fully transparent, 1: fully opaque)
+                   radius = 1)  # Set radius of the circle markers
+
 
 
 
