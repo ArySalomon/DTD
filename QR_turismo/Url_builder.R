@@ -1,3 +1,4 @@
+
 install.packages("ggplot2")
 install.packages("ggmap")
 install.packages("maptools")
@@ -15,7 +16,7 @@ library(leaflet)
 library(ggplot2)
 library(ggmap)
 library(maptools)
-library(maps)
+# library(maps)
 library(sp)
 library(RColorBrewer)
 
@@ -23,6 +24,8 @@ library(RColorBrewer)
 library(readxl)
 Agenda_Verano <- read_excel("Agenda Verano.xlsx")
 View(Agenda_Verano)
+
+colnames(Agenda_Verano) <- gsub(" ", ".", colnames(Agenda_Verano))
 
 # asignamos categorias
 
@@ -51,13 +54,24 @@ leaflet() %>%
 
 
 # filtro dia
-agenda_dia <- Agenda_Verano %>% filter(fecha == as.Date(Agenda_Verano$fecha[80]))
+agenda_dia <- Agenda_Verano[80, ]
+
+agenda_dia <- Agenda_Verano[80, ] %>%
+  dplyr::group_by(fecha) %>%
+  dplyr::mutate(latlong = paste0(Latitud, ",", Longitud)) %>%
+  dplyr::mutate(
+    waypoints = paste(latlong, collapse = "/"),
+    plaza_independencia = "-32.889756,-68.844608",  # Remove extra spaces
+    url = paste0("https://www.google.com/maps/dir/"," /", waypoints, "/@", plaza_independencia)
+  ) %>%
+  dplyr::ungroup()  # Ensure we ungroup at the end
+
 
 
 
 ## construir la url manualmente
 
-agenda_dia <- Agenda_Verano %>% filter(fecha == as.Date(Agenda_Verano$fecha[80])) %>%
+agenda_dia <- Agenda_Verano[80, ] %>%
   mutate(latlong = paste0(Latitud, ",", Longitud))
 
 waypoints <- paste0(paste(agenda_dia$latlong, collapse = "/")) # eventos
@@ -65,17 +79,79 @@ waypoints <- paste0(paste(agenda_dia$latlong, collapse = "/")) # eventos
 base_url <- "https://www.google.com/maps/dir/"
 
 
-
+# alojamiento
 # centroid <- st_centroid(st_union(agenda_dia))
 alojamiento <- paste0(st_coordinates(centroid)[ , "Y"], ",", st_coordinates(centroid)[ , "X"], collapse = ",") # puse la mediana de todos los eventos (por si no quiere poner alojamiento)
 
+url <- paste0(base_url, paste0(alojamiento , "/"), waypoints, paste0("/@", alojamiento))
 
-url <- paste0(base_url, paste0(alojamiento , "/"), waypoints, paste0("/@", alojamiento), ",13.8z?entry=ttu")
+# plaza_independencia
+plaza_independencia <- "-32.889756,-68.844608"
+
+url <- paste0(base_url, paste0(plaza_independencia , "/"), waypoints, paste0("/@", plaza_independencia))
 
 
 
 
 # Travel route optim ------------------------------------------------------
+
+
+
+library(httr)
+library(jsonlite)
+library(sf)
+library(leaflet)
+
+# Define the OSRM server URL
+osrm_server <- "http://router.project-osrm.org"
+
+# Define the waypoints (coordinates)
+waypoints <- list(
+  c(-68.844608, -32.889756),  # Start point
+  c(-68.8358516, -32.8572113) # End point
+)
+
+# Construct the URL
+coordinates <- paste(sapply(waypoints, function(coord) paste(coord, collapse = ",")), collapse = ";")
+url <- paste0(osrm_server, "/route/v1/driving/", coordinates, "?overview=full&geometries=geojson")
+
+# Fetch and parse the directions
+response <- GET(url)
+directions <- content(response, as = "parsed", type = "application/json")
+
+# Decode the geometry
+route_geometry <- directions$routes[[1]]$geometry
+
+# Create a GeoJSON feature collection
+geojson <- list(
+  type = "FeatureCollection",
+  features = list(
+    list(
+      type = "Feature",
+      geometry = route_geometry,
+      properties = list()
+    )
+  )
+)
+
+route_sf <- geojsonsf::geojson_sf(jsonlite::toJSON(geojson, auto_unbox = TRUE))
+
+# Plot the route using leaflet
+leaflet() %>%
+  addTiles() %>%
+  addPolylines(data = route_coords, color = "blue") %>%
+  addMarkers(lng = -68.844608, lat = -32.889756, popup = "Start") %>%
+  addMarkers(lng = -68.8358516, lat = -32.8572113, popup = "End")
+
+
+
+
+
+
+
+
+
+
 
 
 ### Intento optimizar ruta de viaje (conclyó en el trazado de la ruta sin optimización)
