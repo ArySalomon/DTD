@@ -90,9 +90,9 @@ fracc_cens_ciudad <- read_sf(content) %>% filter(depto == "007")
 
 # Microbasurales
 
-shapefile_path <- "C:/Users/arysa/OneDrive/Transformación digital/IDE/Microbasurales_geometria_correg/Microbasurales_geometria_correg.shp"
+shapefile_path <- "C:/Users/arisalomon/Desktop/DTD local/microbasurales/Microbasurales_geometria_correg/Microbasurales_geometria_correg.shp"
 
-microbasurales <- st_read(shapefile_path)
+microbasurales <-st_read(shapefile_path)
 
 microbasurales <- microbasurales[-which(st_is_empty(microbasurales)), ]
 
@@ -163,6 +163,7 @@ leaflet() %>%
 
 # prueba poligono -> pointgrid
 
+x <- 10
 polygon <- microbasurales[x, ]
 
 regular_points <- st_as_sf(as(raster(extent(polygon), res = 0.2), "SpatialPoints"))
@@ -238,6 +239,15 @@ leaflet() %>%
 
 # prueba polígono -> raster -> pointgrid
 
+# rasterized <- rasterize(microbasurales,
+#                         raster(ext = extent(microbasurales[x, ]), resolution = 0.5))
+# 
+# ncell(rasterized)
+# 
+# plot(rasterized, col = "red")
+
+#
+
 rasterized <- rasterize(microbasurales,
                         raster(ext = extent(microbasurales), resolution = 1))
 
@@ -259,9 +269,25 @@ coordpoints$cluster <- as.factor(dbscan(st_coordinates(coordpoints),
                                         eps = 25,
                                         minPts = 80)$cluster)
 
+coordpoints$cluster <- as.numeric(dbscan(st_coordinates(coordpoints),
+                                        eps = 10,
+                                        minPts = 50)$cluster)
+
 
 cluster_colors <- rainbow(length(levels(coordpoints$cluster)))
 cluster_colors[1] <- "grey"
+
+ggplot() +
+  geom_sf(data = fracc_cens_ciudad, col = "black", alpha = 0, size = 0.1) +
+  geom_sf(data = coordpoints, size = 1, alpha = 0.5, aes(col = as.numeric(cluster))) +
+  scale_color_viridis_c() +
+  theme_minimal() +
+  xlim(c(68.94, 68.88)) +
+  ylim(c(32.91, 32.87)) +
+  theme(legend.position = "none")
+
+
+
 
 leaflet() %>%
   addTiles() %>%
