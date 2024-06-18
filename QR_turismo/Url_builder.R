@@ -45,12 +45,13 @@ Agenda_Verano$fecha <- as.Date(Agenda_Verano$Fecha.inicio)
 Agenda_Verano$hora_fin <- format(as.POSIXct(Agenda_Verano$hora_inicio, format = "%H:%M:%S") + 3600, "%H:%M:%S")
 
 
-
-
-
 leaflet() %>%
   addTiles() %>%
   addMarkers(data = Agenda_Verano, lng = ~Longitud, lat = ~Latitud, popup = "Location")
+
+
+writexl::write_xlsx(Agenda_Verano, paste0(getwd(), "/Agenda_Verano_R.xlsx"))
+
 
 
 # filtro dia
