@@ -96,6 +96,7 @@ url <- paste0(base_url, paste0(plaza_independencia , "/"), waypoints, paste0("/@
 # Travel route optim ------------------------------------------------------
 
 
+### intento de obtener direcciones desde el server OSRM
 
 library(httr)
 library(jsonlite)
@@ -139,13 +140,9 @@ route_sf <- geojsonsf::geojson_sf(jsonlite::toJSON(geojson, auto_unbox = TRUE))
 # Plot the route using leaflet
 leaflet() %>%
   addTiles() %>%
-  addPolylines(data = route_coords, color = "blue") %>%
+  addPolylines(data = route_sf, color = "blue") %>%
   addMarkers(lng = -68.844608, lat = -32.889756, popup = "Start") %>%
   addMarkers(lng = -68.8358516, lat = -32.8572113, popup = "End")
-
-
-
-
 
 
 
