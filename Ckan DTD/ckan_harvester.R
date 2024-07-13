@@ -15,10 +15,30 @@ packages <- package_list(as = "table")
 
 # Loop through each package to get resource details
 
+## Loop through each package to get resource details
 rm(package_info, resources_df, resources_data, resource_n)
 
 # Initialize a list to store the data
 resources_data <- data.frame()
+# Function to retrieve all packages with pagination
+get_all_packages <- function() {
+  all_packages <- list()
+  limit <- 100
+  offset <- 0
+  
+  repeat {
+    packages <- package_list(as = "table", limit = limit, offset = offset)
+    if (length(packages) == 0) break
+    all_packages <- c(all_packages, packages)
+    offset <- offset + limit
+  }
+  
+  return(all_packages)
+}
+
+packages <- get_all_packages()
+
+resources_data <- data.frame() # Initialize a list to store the data
 
 # Loop through each package to get resource details
 for (package_id in packages) {
