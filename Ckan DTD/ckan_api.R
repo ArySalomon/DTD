@@ -2,7 +2,6 @@
 library(ckanr)
 library(httr)
 library(urltools)
-library(dplyr)
 library(tidyr)
 
 ckanr_setup(url = "https://datos.ciudaddemendoza.gob.ar", key = "")
@@ -68,9 +67,8 @@ response <- POST(
 
 ## Alternativa
 
-
-
-
+library(ckanr)
+library(tidyr)
 library(httr)
 library(jsonlite)
 
@@ -78,6 +76,7 @@ library(jsonlite)
 ckan_url <- "https://datos.ciudaddemendoza.gob.ar/api/3/action/package_create"
 ckan_api_key <- ""
 
+ckanr_setup(url = "https://datos.ciudaddemendoza.gob.ar", key = ckan_api_key)
 
 # Replace with your dataset/package details
 package_data <- toJSON(list(
@@ -97,12 +96,42 @@ headers <- add_headers(
 # Send POST request to create the package
 response <- POST(url = ckan_url, body = package_data, headers = headers)
 
-# Check response status
-if (http_status(response)$status_code == 200) {
-  cat("Package created successfully.\n")
-} else {
-  cat("Failed to create package. Status code:", http_status(response)$status_code, "\n")
-  cat(content(response, "text"), "\n")
-}
+response$status_code
+
+
+###
+
+
+
+organization_show(id = "transformacion_digital", include_datasets = TRUE, as = "list")$id
+
+organization_show(id = "transformacion_digital", include_datasets = TRUE, as = "table")$users %>% View()
+
+package_create(name = "metados_ckan",
+               title = "Metadatos CKAN Ciudad de Mendoza",
+               private = F,
+               author = "transformacion_digital",
+               author_email = NULL,
+               maintainer = NULL,
+               maintainer_email = NULL,
+               license_id = NULL,
+               notes = NULL,
+               package_url = NULL,
+               version = NULL,
+               state = "active",
+               type = NULL,
+               resources = NULL,
+               tags = NULL,
+               extras = NULL,
+               relationships_as_object = NULL,
+               relationships_as_subject = NULL,
+               groups = NULL,
+               owner_org = "transformacion_digital",
+               url = get_default_url(),
+               key = get_default_key(),
+               as = "list")
+
+
+
 
 

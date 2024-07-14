@@ -1,4 +1,5 @@
 
+library(openxlsx)
 library(ckanr)
 library(httr)
 library(urltools)
@@ -69,6 +70,7 @@ classify_update_status <- function(periodicity, last_updated) {
 
 # Initialize data frames to store packages and resources data
 packages_data <- data.frame(
+  package_groups = character(),
   package_name = character(),
   package_description = character(),
   package_id = character(),
@@ -100,6 +102,7 @@ for (package_id in get_all_packages()) {
   
   # Extract package data
   packages_data <- rbind(packages_data, data.frame(
+    package_groups = paste(package_info$groups$title, collapse = " - "),
     package_name = package_info$title,
     package_description = package_info$notes,
     package_id = package_info$id,
@@ -132,6 +135,15 @@ for (package_id in get_all_packages()) {
     ))
   }
 }
+
+
+
+write.xlsx(resources_data, file = paste0(getwd(), "/resources_data.xlsx"))
+write.xlsx(packages_data, file = paste0(getwd(), "/packages_data.xlsx"))
+
+
+
+
 
 
 
