@@ -16,7 +16,6 @@ ckan_info()
 # listas de elementos
 organization_list()
 group_list()
-package_list()
 
 organization_show(id = "transformacion_digital", include_datasets = TRUE, as = "list")$packages
 package_show(id = "12150e43-6c48-49b4-a29e-47a2518b45bc", include_datasets = TRUE, as = "list")$resources
@@ -64,3 +63,46 @@ response <- POST(
   ),
   encode = "multipart"
 )
+
+
+
+## Alternativa
+
+
+
+
+library(httr)
+library(jsonlite)
+
+# Replace these variables with your CKAN instance URL, API key, and dataset details
+ckan_url <- "https://datos.ciudaddemendoza.gob.ar/api/3/action/package_create"
+ckan_api_key <- ""
+
+
+# Replace with your dataset/package details
+package_data <- toJSON(list(
+  name = "metados_ckan",
+  title = "Metadatos CKAN Ciudad de Mendoza",
+  notes = "Metadatos extraídos de la instancia CKAN de la Municipalidad de la Ciudad de Mendoza",
+  owner_org = "transformacion_digital"
+  # Add more fields as needed (e.g., tags, resources)
+))
+
+# Create headers with authorization and content type
+headers <- add_headers(
+  Authorization = ckan_api_key,
+  `Content-Type` = "application/json"
+)
+
+# Send POST request to create the package
+response <- POST(url = ckan_url, body = package_data, headers = headers)
+
+# Check response status
+if (http_status(response)$status_code == 200) {
+  cat("Package created successfully.\n")
+} else {
+  cat("Failed to create package. Status code:", http_status(response)$status_code, "\n")
+  cat(content(response, "text"), "\n")
+}
+
+
